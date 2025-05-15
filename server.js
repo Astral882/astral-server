@@ -1,46 +1,27 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; // Render 会分配端口
 
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.json({ message: 'Astral Server is live' });
+app.post("/register", (req, res) => {
+  const { name, email, phone } = req.body;
+  console.log("✅ 收到注册信息：", name, email, phone);
+
+  if (!name || !email || !phone) {
+    return res.status(400).json({ success: false, error: "请填写所有栏位" });
+  }
+
+  return res.status(200).json({ success: true, message: "注册成功" });
 });
 
-app.post('/register', async (req, res) => {
-  console.log("收到提交数据：", req.body);
-
-  try {
-    const data = req.body;
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbyXllF-BSjXm1AQfc1la28ibOVryaWjMcP6gJmO4dJRAgg2sWJtp07PR96moHv9rW-F/exec';
-
-    const response = await fetch(scriptURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-
-    const text = await response.text();
-    console.log("Google Script 返回内容：", text);
-
-    try {
-      const result = JSON.parse(text);
-      res.status(200).json({ success: true, result });
-    } catch (e) {
-      res.status(200).json({ success: true, raw: text });
-    }
-
-  } catch (error) {
-    console.error("Register error:", error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
+app.get("/", (req, res) => {
+  res.send("服务器运行中 - Astral Time API");
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
