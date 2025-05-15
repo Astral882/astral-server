@@ -1,0 +1,25 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #fff;
+  color: #333;
+  text-align: center;
+  padding: 30px;
+}
+button {
+  padding: 10px 20px;
+  margin: 10px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="file"] {
+  width: 80%;
+  padding: 10px;
+  margin: 5px auto;
+  display: block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
