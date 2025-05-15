@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>Astral Time - 投资注册</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f2f2f2; margin: 0; padding: 0; }
+    .container { max-width: 800px; margin: auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+    .logo { text-align: center; }
+    .logo img { width: 100px; }
+    .company-name { font-size: 24px; font-weight: bold; color: #b49c73; text-shadow: 1px 1px 2px #444; }
+    .subtitle { text-align: center; font-size: 14px; color: #888; margin-bottom: 25px; }
+
+    label { font-weight: bold; margin-top: 15px; display: block; }
+    input, select {
+      width: 100%; padding: 10px; margin-top: 5px;
+      border: 1px solid #ccc; border-radius: 5px;
+    }
+
+    canvas { border: 1px solid #ccc; width: 100%; height: 150px; }
+    video { width: 100%; max-height: 220px; background: #000; margin-top: 10px; border-radius: 6px; }
+    button {
+      margin-top: 20px; padding: 12px; background: #007bff; color: white;
+      font-size: 16px; border: none; border-radius: 6px; cursor: pointer;
+    }
+    #ipInfo { font-size: 14px; color: #666; margin-top: 5px; }
+    footer { margin-top: 40px; text-align: center; font-size: 14px; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <img src="assets/image/logo.png" alt="logo">
+      <div class="company-name">Astral Time Limited</div>
+      <div class="subtitle">Next-Generation Investment Platform</div>
+    </div>
+
+    <form id="registerForm" method="POST" action="/register" enctype="multipart/form-data">
+  <!-- 所有输入栏位放这里（姓名、地址、电话、身份证上传、人脸识别等） -->
+</form>
+      <label>姓名 / Name</label>
+      <input type="text" name="name" required>
+
+      <label>地址 / Address</label>
+      <input type="text" name="address" required>
+
+      <label>出生日期 / Date of Birth</label>
+      <input type="date" name="dob" required>
+
+      <label>国籍 / Nationality</label>
+      <input type="text" name="nationality" required>
+
+      <label>电话 / Phone</label>
+      <input type="text" name="phone" required>
+
+      <label>电邮 / Email</label>
+      <input type="email" name="email" required>
+
+      <label>注册日期 / Registration Date</label>
+      <input type="date" name="reg_date" required>
+
+      <label>性别 / Gender</label>
+      <select name="gender" required>
+        <option value="">请选择 / Please select</option>
+        <option value="男 / Male">男 / Male</option>
+        <option value="女 / Female">女 / Female</option>
+        <option value="其他 / Other">其他 / Other</option>
+      </select>
+
+      <label>代理代码 / Referral Code</label>
+      <input type="text" name="referral" required>
+
+      <label>身份证正面 / ID Front</label>
+      <input type="file" name="id_front" accept="image/*" required>
+
+      <label>身份证背面 / ID Back</label>
+      <input type="file" name="id_back" accept="image/*" required>
+
+      <label>人脸识别自拍照 / Face Verification</label>
+      <video id="video" autoplay playsinline></video>
+      <button type="button" onclick="captureFace()">拍照 / Capture</button>
+      <canvas id="faceCanvas" style="display:none;"></canvas>
+      <input type="hidden" name="faceImage" id="faceImage">
+      <div id="faceStatus" style="color:red; font-weight:bold;"></div>
+      <label>我已阅读并接受条款 / I agree to Terms</label>
+      <input type="checkbox" name="agree" required>
+
+      <label>电子签名 / Signature</label>
+      <canvas id="signature"></canvas>
+      <button type="button" onclick="clearSignature()">清除签名 / Clear</button>
+      <input type="hidden" name="signatureImage" id="signatureImage">
+
+      <label>您的 IP 与地区 / IP & Region:</label>
+      <div id="ipInfo">加载中...</div>
+
+      <button type="submit" id="submitBtn">提交注册 / Submit</button>
+    </form>
+
+    <footer>Copyright © 2025 Astral Time Limited</footer>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("faceCanvas");
+    const ctx = canvas.getContext("2d");
+    const faceImageInput = document.getElementById("faceImage");
+    const faceStatus = document.getElementById("faceStatus");
+    const submitBtn = document.getElementById("submitBtn");
+
+    let failCount = parseInt(localStorage.getItem("faceFailCount") || "0");
+    let lockUntil = parseInt(localStorage.getItem("faceLockUntil") || "0");
+
+    const now = Date.now();
+    if (now < lockUntil) {
+      faceStatus.innerText = "识别失败已达 3 次，请等待解锁...";
+      disableFace();
+      startUnlockCountdown();
+    }
+
+    function disableFace() {
+      submitBtn.disabled = true;
+      document.querySelector('button[onclick="captureFace()"]').disabled = true;
+    }
+
+    function enableFace() {
+      submitBtn.disabled = false;
+      document.querySelector('button[onclick="captureFace()"]').disabled = false;
+    }
+
+    function startUnlockCountdown() {
+      const interval = setInterval(() => {
+        const left = Math.floor((lockUntil - Date.now()) / 1000);
+        if (left <= 0) {
+          clearInterval(interval);
+          failCount = 0;
+          localStorage.removeItem("faceFailCount");
+          localStorage.removeItem("faceLockUntil");
+          faceStatus.innerText = "已解锁，请重新识别";
+          enableFace();
+        } else {
+          faceStatus.innerText = `识别失败已锁定，还剩 ${Math.ceil(left / 60)} 分钟`;
+        }
+      }, 1000);
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => { faceStatus.innerText = "相机启动失败"; });
+
+    function captureFace() {
+      const now = Date.now();
+      if (now < lockUntil) {
+        faceStatus.innerText = "已锁定，请稍候...";
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const dataURL = canvas.toDataURL();
+      faceImageInput.value = dataURL;
+      faceStatus.innerText = "识别中，请稍候…";
+      checkBlacklist(dataURL).then(() => {
+        if (faceStatus.innerText !== "验证通过，可提交") {
+          failCount++;
+          localStorage.setItem("faceFailCount", failCount);
+          if (failCount >= 3) {
+            const until = Date.now() + 30 * 60 * 1000;
+            localStorage.setItem("faceLockUntil", until);
+            lockUntil = until;
+            faceStatus.innerText = "识别失败已达 3 次，请 30 分钟后再试";
+            disableFace();
+            startUnlockCountdown();
+          }
+        }
+      });
+    }
+
+    async function checkBlacklist(dataURL) {
+      const blob = await (await fetch(dataURL)).blob();
+      const res = await fetch("https://astralfaceapi.cognitiveservices.azure.com/face/v1.0/detect?returnFaceId=true", {
+        method: "POST",
+        headers: {
+          "Ocp-Apim-Subscription-Key": "1bUId52TC326xEF9VIky6N5wcbXGOlQtfZmOSl72BG9TBNqal30EJQQJ99BEACqBBLyXJ3w3AAAKACOGcHXZ",
+          "Content-Type": "application/octet-stream"
+        },
+        body: blob
+      });
+
+      const faceData = await res.json();
+      if (!faceData[0]) {
+        faceStatus.innerText = "未检测到人脸";
+        return;
+      }
+
+      const faceId = faceData[0].faceId;
+      const verifyRes = await fetch("https://astralfaceapi.cognitiveservices.azure.com/face/v1.0/findsimilars", {
+        method: "POST",
+        headers: {
+          "Ocp-Apim-Subscription-Key": "1bUId52TC326xEF9VIky6N5wcbXGOlQtfZmOSl72BG9TBNqal30EJQQJ99BEACqBBLyXJ3w3AAAKACOGcHXZ",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          faceId: faceId,
+          faceListId: "face-blacklist",
+          maxNumOfCandidatesReturned: 1,
+          mode: "matchPerson"
+        })
+      });
+
+      const result = await verifyRes.json();
+      if (result.length > 0 && result[0].confidence > 0.6) {
+        faceStatus.innerText = "黑名单用户，禁止注册";
+        disableFace();
+      } else {
+        faceStatus.innerText = "验证通过，可提交";
+        failCount = 0;
+        localStorage.removeItem("faceFailCount");
+        localStorage.removeItem("faceLockUntil");
+        enableFace();
+      }
+    }
+
+    // IP追踪
+    fetch("https://ipapi.co/json/")
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("ipInfo").innerText = `${data.ip} - ${data.city}, ${data.country_name}`;
+      });
+
+    // 签名
+    const sigCanvas = document.getElementById("signature");
+    const sigCtx = sigCanvas.getContext("2d");
+    let signing = false;
+
+    sigCanvas.addEventListener("mousedown", () => signing = true);
+    sigCanvas.addEventListener("mouseup", () => signing = false);
+    sigCanvas.addEventListener("mousemove", drawSig);
+    sigCanvas.addEventListener("touchstart", () => signing = true);
+    sigCanvas.addEventListener("touchend", () => signing = false);
+    sigCanvas.addEventListener("touchmove", (e) => drawSig(e.touches[0]));
+
+    function drawSig(e) {
+      if (!signing) return;
+      const rect = sigCanvas.getBoundingClientRect();
+      const x = (e.clientX || e.pageX) - rect.left;
+      const y = (e.clientY || e.pageY) - rect.top;
+      sigCtx.lineWidth = 2;
+      sigCtx.lineTo(x, y);
+      sigCtx.stroke();
+    }
+
+    function clearSignature() {
+      sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    }
+
+    function submitForm(event) {
+      event.preventDefault();
+      document.getElementById("signatureImage").value = sigCanvas.toDataURL();
+      alert("表单验证完成，下一步连接后端 / Google Sheet。");
+    }
+  </script>
+</body>
+</html>
